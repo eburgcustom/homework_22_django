@@ -1,0 +1,28 @@
+[
+{
+    "model": "catalog.product",
+    "pk": 1,
+    "fields": {
+        "name": "Смартфон",
+        "description": "Мощный смартфон с отличной камерой",
+        "image": "",
+        "category": 1,
+        "price": "549.99",
+        "created_at": "2025-12-25T19:37:46.791Z",
+        "updated_at": "2025-12-25T19:58:28.862Z"
+    }
+},
+{
+    "model": "catalog.product",
+    "pk": 3,
+    "fields": {
+        "name": "Роман \"1984\"",
+        "description": "Антиутопия Джорджа Оруэлла",
+        "image": "",
+        "category": 3,
+        "price": "15.50",
+        "created_at": "2025-12-25T19:39:58.752Z",
+        "updated_at": "2025-12-25T19:39:58.752Z"
+    }
+}
+]
