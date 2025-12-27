@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-md-6">
+            {% if product.image %}
+                <img src="{{ product.image.url }}" alt="{{ product.name }}" class="img-fluid rounded">
+            {% else %}
+                <div class="bg-light d-flex align-items-center justify-content-center" style="height: 300px; width: 100%;">
+                    <span class="text-muted">Нет изображения</span>
+                </div>
+            {% endif %}
+        </div>
+        <div class="col-md-6">
+            <h1 class="mb-4">{{ product.name }}</h1>
+            
+            <div class="mb-4">
+                <h4>Описание</h4>
+                <p class="lead">{{ product.description|default:'Нет описания' }}</p>
+            </div>
+            
+            <div class="mb-4">
+                <h4>Категория</h4>
+                <p>{{ product.category.name }}</p>
+            </div>
+            
+            <div class="mb-4">
+                <h4>Цена</h4>
+                <h3 class="text-primary">{{ product.price }} ₽</h3>
+            </div>
+            
+            <div class="mb-4">
+                <h4>Дата создания</h4>
+                <p>{{ product.created_at|date:"d.m.Y H:i" }}</p>
+            </div>
+            
+            <div class="mb-4">
+                <h4>Последнее обновление</h4>
+                <p>{{ product.updated_at|date:"d.m.Y H:i" }}</p>
+            </div>
+            
+            <a href="{% url 'catalog:home' %}" class="btn btn-outline-secondary mt-3">
+                <i class="bi bi-arrow-left"></i> Назад к каталогу
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
