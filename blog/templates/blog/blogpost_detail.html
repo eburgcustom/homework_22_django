@@ -1,0 +1,38 @@
+{% extends 'blog/base_blog.html' %}
+
+{% block title %}{{ post.title }}{% endblock %}
+
+{% block blog_content %}
+<article class="blog-post">
+    <div class="card">
+        {% if post.preview %}
+        <img src="{{ post.preview.url }}" class="card-img-top" alt="{{ post.title }}">
+        {% endif %}
+        <div class="card-body">
+            <h1 class="card-title">{{ post.title }}</h1>
+            <div class="post-meta">
+                <span>Опубликовано: {{ post.created_at|date:"d.m.Y H:i" }}</span> |
+                <span>Просмотров: {{ post.views_count }}</span>
+            </div>
+            <div class="card-text">
+                {{ post.content|linebreaks }}
+            </div>
+            <div class="blog-actions">
+                <a href="{% url 'blog:blogpost_list' %}" class="btn btn-secondary">
+                    <i class="bi bi-arrow-left"></i> Назад к списку
+                </a>
+                {% if user.is_staff %}
+                <div class="btn-group float-end">
+                    <a href="{% url 'blog:blogpost_update' post.pk %}" class="btn btn-warning">
+                        <i class="bi bi-pencil"></i> Редактировать
+                    </a>
+                    <a href="{% url 'blog:blogpost_delete' post.pk %}" class="btn btn-danger">
+                        <i class="bi bi-trash"></i> Удалить
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</article>
+{% endblock %}
