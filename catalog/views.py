@@ -1,41 +1,54 @@
-from django.shortcuts import render, redirect, get_object_or_404
+from django.views.generic import ListView, DetailView, TemplateView
 from django.contrib import messages
+from django.shortcuts import redirect
 from .models import Product
 
 
-def home(request):
-    products = Product.objects.all()
-    context = {
-        'products': products,
-        'title': 'Главная - Каталог товаров'
-    }
-    return render(request, 'home.html', context)
+class ProductListView(ListView):
+    """
+    Класс для отображения списка товаров на главной странице
+    """
+    model = Product
+    template_name = 'home.html'
+    context_object_name = 'products'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = 'Главная - Каталог товаров'
+        return context
 
 
-def contacts(request):
-    if request.method == 'POST':
+class ContactsView(TemplateView):
+    """
+    Класс для отображения страницы контактов с формой обратной связи
+    """
+    template_name = 'contacts.html'
+
+    def post(self, request, *args, **kwargs):
         # Обработка данных формы
         name = request.POST.get('name')
         phone = request.POST.get('phone')
         message = request.POST.get('message')
 
-        # Здесь можно добавить логику сохранения в базу данных
-        # или отправки email
-
         # Выводим сообщение об успешной отправке
         messages.success(request, 'Ваше сообщение успешно отправлено!')
         return redirect('catalog:contacts')
 
-    return render(request, 'contacts.html')
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = 'Контакты'
+        return context
 
 
-def product_detail(request, pk):
+class ProductDetailView(DetailView):
     """
-    Отображает детальную информацию о товаре
+    Класс для отображения детальной информации о товаре
     """
-    product = get_object_or_404(Product, pk=pk)
-    context = {
-        'product': product,
-        'title': f'Товар: {product.name}'
-    }
-    return render(request, 'product_detail.html', context)
+    model = Product
+    template_name = 'product_detail.html'
+    context_object_name = 'product'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = f'Товар: {self.object.name}'
+        return context
