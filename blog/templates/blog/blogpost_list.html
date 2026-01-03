@@ -1,0 +1,56 @@
+{% extends 'blog/base_blog.html' %}
+{% load static %}
+
+{% block title %}Блог - Список записей{% endblock %}
+
+{% block blog_content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Блог</h1>
+    <a href="{% url 'blog:blogpost_create' %}" class="btn btn-primary">
+        <i class="bi bi-plus-circle"></i> Создать запись
+    </a>
+</div>
+
+{% if posts %}
+<div class="row row-cols-1 row-cols-md-2 g-4">
+    {% for post in posts %}
+    <div class="col">
+        <div class="card h-100">
+            {% if post.preview %}
+            <img src="{{ post.preview.url }}" class="card-img-top" alt="{{ post.title }}" style="height: 200px; object-fit: cover;">
+            {% endif %}
+            <div class="card-body">
+                <h5 class="card-title">{{ post.title }}</h5>
+                <p class="card-text">{{ post.content|truncatewords:30 }}</p>
+                <div class="d-flex justify-content-between align-items-center">
+                    <small class="text-muted">
+                        <i class="bi bi-calendar3"></i> {{ post.created_at|date:"d.m.Y" }}
+                        <span class="ms-2"><i class="bi bi-eye"></i> {{ post.views_count }}</span>
+                    </small>
+                    <a href="{% url 'blog:blogpost_detail' post.pk %}" class="btn btn-sm btn-outline-primary">
+                        Читать далее <i class="bi bi-arrow-right"></i>
+                    </a>
+                </div>
+            </div>
+            {% if user.is_staff %}
+            <div class="card-footer bg-transparent">
+                <div class="btn-group btn-group-sm">
+                    <a href="{% url 'blog:blogpost_update' post.pk %}" class="btn btn-outline-warning">
+                        <i class="bi bi-pencil"></i> Редактировать
+                    </a>
+                    <a href="{% url 'blog:blogpost_delete' post.pk %}" class="btn btn-outline-danger">
+                        <i class="bi bi-trash"></i> Удалить
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="alert alert-info" role="alert">
+    <i class="bi bi-info-circle"></i> Пока нет записей в блоге. Хотите <a href="{% url 'blog:blogpost_create' %}" class="alert-link">создать первую запись</a>?
+</div>
+{% endif %}
+{% endblock %}
