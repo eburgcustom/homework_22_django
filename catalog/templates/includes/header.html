@@ -26,6 +26,14 @@
                             <i class="bi bi-twitch"></i> Блог
                         </a>
                     </li>
+                    {% if perms.catalog.can_unpublish_product %}
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'moderation_list' %}active{% endif %}"
+                           href="{% url 'catalog:moderation_list' %}">
+                            <i class="bi bi-shield-check"></i> Модерация
+                        </a>
+                    </li>
+                    {% endif %}
                     {% if user.is_authenticated %}
                     <li class="nav-item">
                         <a class="nav-link {% if request.resolver_match.url_name == 'users' %}active{% endif %}"
