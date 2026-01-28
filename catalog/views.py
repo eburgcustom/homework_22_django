@@ -1,7 +1,7 @@
 from django.views.generic import ListView, DetailView, TemplateView, CreateView, UpdateView, DeleteView
 from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
 from django.contrib import messages
-from django.shortcuts import redirect, get_object_or_404
+from django.shortcuts import redirect
 from django.urls import reverse_lazy
 from .models import Product
 from .forms import ProductForm
@@ -49,7 +49,7 @@ class ContactsView(TemplateView):
         return context
 
 
-class ProductDetailView(LoginRequiredMixin, DetailView):
+class ProductDetailView(DetailView):
     """
     Класс для отображения детальной информации о товаре
     """
@@ -166,12 +166,13 @@ class ProductUnpublishView(LoginRequiredMixin, PermissionRequiredMixin, UpdateVi
     template_name = 'catalog/product_unpublish.html'
     permission_required = 'catalog.can_unpublish_product'
     success_url = reverse_lazy('catalog:moderation_list')
-    
+    fields = []  # Пустые поля, т.к. форма не нужна
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['title'] = f'Отмена публикации: {self.object.name}'
         return context
-    
+
     def form_valid(self, form):
         form.instance.publication_status = Product.PublicationStatus.REJECTED
         form.instance.is_published = False
@@ -187,12 +188,13 @@ class ProductPublishView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView
     template_name = 'catalog/product_publish.html'
     permission_required = 'catalog.can_unpublish_product'
     success_url = reverse_lazy('catalog:moderation_list')
-    
+    fields = []  # Пустые поля, т.к. форма не нужна
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['title'] = f'Публикация: {self.object.name}'
         return context
-    
+
     def form_valid(self, form):
         form.instance.publication_status = Product.PublicationStatus.PUBLISHED
         form.instance.is_published = True
