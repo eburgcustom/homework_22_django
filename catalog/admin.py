@@ -11,7 +11,21 @@ class CategoryAdmin(admin.ModelAdmin):
 
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
-    list_display = ('id', 'name', 'price', 'category')
-    list_filter = ('category',)
+    list_display = ('id', 'name', 'price', 'category', 'publication_status', 'is_published')
+    list_filter = ('category', 'publication_status', 'is_published')
     search_fields = ('name', 'description')
     list_display_links = ('id', 'name')
+    list_editable = ('publication_status', 'is_published')
+    
+    fieldsets = (
+        (None, {
+            'fields': ('name', 'description', 'category', 'price')
+        }),
+        ('Медиа', {
+            'fields': ('image',)
+        }),
+        ('Публикация', {
+            'fields': ('is_published', 'publication_status'),
+            'classes': ('collapse',)
+        }),
+    )
