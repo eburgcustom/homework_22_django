@@ -1,6 +1,7 @@
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
 from django.urls import reverse_lazy
 from .models import BlogPost
+from django.contrib.auth.mixins import LoginRequiredMixin
 
 
 class BlogPostListView(ListView):
@@ -12,7 +13,7 @@ class BlogPostListView(ListView):
         return BlogPost.objects.filter(is_published=True).order_by('-created_at')
 
 
-class BlogPostDetailView(DetailView):
+class BlogPostDetailView(LoginRequiredMixin, DetailView):
     model = BlogPost
     template_name = 'blog/blogpost_detail.html'
     context_object_name = 'post'
@@ -24,14 +25,14 @@ class BlogPostDetailView(DetailView):
         return obj
 
 
-class BlogPostCreateView(CreateView):
+class BlogPostCreateView(LoginRequiredMixin, CreateView):
     model = BlogPost
     template_name = 'blog/blogpost_form.html'
     fields = ['title', 'content', 'preview', 'is_published']
     success_url = reverse_lazy('blog:blogpost_list')
 
 
-class BlogPostUpdateView(UpdateView):
+class BlogPostUpdateView(LoginRequiredMixin, UpdateView):
     model = BlogPost
     template_name = 'blog/blogpost_form.html'
     fields = ['title', 'content', 'preview', 'is_published']
@@ -40,7 +41,7 @@ class BlogPostUpdateView(UpdateView):
         return reverse_lazy('blog:blogpost_detail', kwargs={'pk': self.object.pk})
 
 
-class BlogPostDeleteView(DeleteView):
+class BlogPostDeleteView(LoginRequiredMixin, DeleteView):
     model = BlogPost
     template_name = 'blog/blogpost_confirm_delete.html'
     success_url = reverse_lazy('blog:blogpost_list')

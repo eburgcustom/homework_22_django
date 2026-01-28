@@ -26,6 +26,27 @@
                             <i class="bi bi-twitch"></i> Блог
                         </a>
                     </li>
+                    {% if user.is_authenticated %}
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'users' %}active{% endif %}"
+                           href="{% url 'users:logout' %}">
+                            <i class="bi bi-box-arrow-right"></i> Выход
+                        </a>
+                    </li>
+                    {% else %}
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'users' %}active{% endif %}"
+                           href="{% url 'users:login' %}">
+                            <i class="bi bi-box-arrow-in-right"></i> Вход
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'users' %}active{% endif %}"
+                           href="{% url 'users:register' %}">
+                            <i class="bi bi-person-plus"></i> Регистрация
+                        </a>
+                    </li>
+                    {% endif %}
                 </ul>
             </div>
         </div>
