@@ -92,6 +92,14 @@ class ProductUpdateView(LoginRequiredMixin, UpdateView):
     template_name = 'catalog/product_form.html'
     success_url = reverse_lazy('catalog:home')
 
+    def dispatch(self, request, *args, **kwargs):
+        product = self.get_object()
+        # Проверяем, что пользователь является владельцем или модератором
+        if product.owner != request.user and not request.user.has_perm('catalog.can_unpublish_product'):
+            messages.error(request, 'У вас нет прав для редактирования этого товара')
+            return redirect('catalog:home')
+        return super().dispatch(request, *args, **kwargs)
+
     def form_valid(self, form):
         messages.success(self.request, 'Товар успешно обновлен!')
         return super().form_valid(form)
@@ -110,6 +118,14 @@ class ProductDeleteView(LoginRequiredMixin, DeleteView):
     template_name = 'catalog/product_confirm_delete.html'
     success_url = reverse_lazy('catalog:home')
     context_object_name = 'product'
+
+    def dispatch(self, request, *args, **kwargs):
+        product = self.get_object()
+        # Проверяем, что пользователь является владельцем или модератором
+        if product.owner != request.user and not request.user.has_perm('catalog.can_unpublish_product'):
+            messages.error(request, 'У вас нет прав для удаления этого товара')
+            return redirect('catalog:home')
+        return super().dispatch(request, *args, **kwargs)
 
     def delete(self, request, *args, **kwargs):
         response = super().delete(request, *args, **kwargs)
