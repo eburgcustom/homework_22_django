@@ -1,7 +1,7 @@
 from django.views.generic import ListView, DetailView, TemplateView, CreateView, UpdateView, DeleteView
+from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
 from django.contrib import messages
-from django.contrib.auth.mixins import LoginRequiredMixin
-from django.shortcuts import redirect
+from django.shortcuts import redirect, get_object_or_404
 from django.urls import reverse_lazy
 from .models import Product
 from .forms import ProductForm
@@ -14,6 +14,12 @@ class ProductListView(ListView):
     model = Product
     template_name = 'home.html'
     context_object_name = 'products'
+
+    def get_queryset(self):
+        return Product.objects.filter(
+            is_published=True,
+            publication_status=Product.PublicationStatus.PUBLISHED
+        )
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -113,3 +119,65 @@ class ProductDeleteView(LoginRequiredMixin, DeleteView):
         context = super().get_context_data(**kwargs)
         context['title'] = f'Удаление товара: {self.object.name}'
         return context
+
+
+class ProductModerationListView(LoginRequiredMixin, PermissionRequiredMixin, ListView):
+    """
+    Класс для отображения списка товаров на модерации
+    """
+    model = Product
+    template_name = 'catalog/product_moderation_list.html'
+    context_object_name = 'products'
+    permission_required = 'catalog.can_unpublish_product'
+
+    def get_queryset(self):
+        return Product.objects.filter(
+            publication_status__in=[Product.PublicationStatus.MODERATION, Product.PublicationStatus.DRAFT]
+        )
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = 'Модерация продуктов'
+        return context
+
+
+class ProductUnpublishView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
+    """
+    Класс для отмены публикации продукта
+    """
+    model = Product
+    template_name = 'catalog/product_unpublish.html'
+    permission_required = 'catalog.can_unpublish_product'
+    success_url = reverse_lazy('catalog:moderation_list')
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = f'Отмена публикации: {self.object.name}'
+        return context
+    
+    def form_valid(self, form):
+        form.instance.publication_status = Product.PublicationStatus.REJECTED
+        form.instance.is_published = False
+        messages.success(self.request, f'Продукт "{self.object.name}" снят с публикации')
+        return super().form_valid(form)
+
+
+class ProductPublishView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
+    """
+    Класс для публикации продукта
+    """
+    model = Product
+    template_name = 'catalog/product_publish.html'
+    permission_required = 'catalog.can_unpublish_product'
+    success_url = reverse_lazy('catalog:moderation_list')
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = f'Публикация: {self.object.name}'
+        return context
+    
+    def form_valid(self, form):
+        form.instance.publication_status = Product.PublicationStatus.PUBLISHED
+        form.instance.is_published = True
+        messages.success(self.request, f'Продукт "{self.object.name}" успешно опубликован')
+        return super().form_valid(form)
