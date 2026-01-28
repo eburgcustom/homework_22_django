@@ -34,7 +34,6 @@
                         </a>
                     </li>
                     {% endif %}
-                    {% if user.is_authenticated %}
                     <li class="nav-item">
                         <a class="nav-link {% if request.resolver_match.url_name == 'users' %}active{% endif %}"
                            href="{% url 'users:logout' %}">
