@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1>{{ title }}</h1>
+    
+    {% if products %}
+        <div class="row">
+            {% for product in products %}
+                <div class="col-md-6 col-lg-4 mb-4">
+                    <div class="card h-100">
+                        {% if product.image %}
+                            <img src="{{ product.image.url }}" class="card-img-top" alt="{{ product.name }}">
+                        {% else %}
+                            <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 200px;">
+                                <span class="text-muted">Нет изображения</span>
+                            </div>
+                        {% endif %}
+                        
+                        <div class="card-body d-flex flex-column">
+                            <h5 class="card-title">{{ product.name }}</h5>
+                            <p class="card-text">{{ product.description|truncatewords:20 }}</p>
+                            <p class="card-text"><strong>Категория:</strong> {{ product.category.name }}</p>
+                            <p class="card-text"><strong>Цена:</strong> {{ product.price }} руб.</p>
+                            
+                            <div class="mb-2">
+                                <span class="badge 
+                                    {% if product.publication_status == 'draft' %}bg-secondary
+                                    {% elif product.publication_status == 'moderation' %}bg-warning
+                                    {% elif product.publication_status == 'published' %}bg-success
+                                    {% else %}bg-danger{% endif %}">
+                                    {{ product.get_publication_status_display }}
+                                </span>
+                            </div>
+                            
+                            <div class="mt-auto">
+                                <div class="btn-group w-100" role="group">
+                                    <a href="{% url 'catalog:product_detail' product.pk %}" class="btn btn-outline-primary btn-sm">Просмотр</a>
+                                    
+                                    {% if perms.catalog.can_unpublish_product %}
+                                        {% if product.publication_status != 'published' %}
+                                            <a href="{% url 'catalog:product_publish' product.pk %}" class="btn btn-success btn-sm">Опубликовать</a>
+                                        {% endif %}
+                                        {% if product.publication_status == 'published' %}
+                                            <a href="{% url 'catalog:product_unpublish' product.pk %}" class="btn btn-danger btn-sm">Снять</a>
+                                        {% endif %}
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="alert alert-info">
+            <h4>Продуктов на модерации нет</h4>
+            <p>В настоящее время нет продуктов, требующих модерации.</p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

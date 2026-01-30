@@ -48,12 +48,14 @@
                             <a href="{% url 'catalog:product_detail' product.pk %}" class="btn btn-sm btn-outline-primary">
                                 <i class="bi bi-eye"></i>
                             </a>
+                            {% if user.is_authenticated and product.owner == user %}
                             <a href="{% url 'catalog:product_update' product.pk %}" class="btn btn-sm btn-outline-secondary">
                                 <i class="bi bi-pencil"></i>
                             </a>
                             <a href="{% url 'catalog:product_delete' product.pk %}" class="btn btn-sm btn-outline-danger">
                                 <i class="bi bi-trash"></i>
                             </a>
+                            {% endif %}
                         </div>
                     </div>
                 </div>
