@@ -17,7 +17,6 @@ class ProductListView(ListView):
 
     def get_queryset(self):
         return Product.objects.filter(
-            is_published=True,
             publication_status=Product.PublicationStatus.PUBLISHED
         )
 
@@ -175,7 +174,6 @@ class ProductUnpublishView(LoginRequiredMixin, PermissionRequiredMixin, UpdateVi
 
     def form_valid(self, form):
         form.instance.publication_status = Product.PublicationStatus.REJECTED
-        form.instance.is_published = False
         messages.success(self.request, f'Продукт "{self.object.name}" снят с публикации')
         return super().form_valid(form)
 
@@ -197,6 +195,5 @@ class ProductPublishView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView
 
     def form_valid(self, form):
         form.instance.publication_status = Product.PublicationStatus.PUBLISHED
-        form.instance.is_published = True
         messages.success(self.request, f'Продукт "{self.object.name}" успешно опубликован')
         return super().form_valid(form)
