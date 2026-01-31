@@ -3,6 +3,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMix
 from django.contrib import messages
 from django.shortcuts import redirect
 from django.urls import reverse_lazy
+from django.core.cache import cache
 from .models import Product
 from .forms import ProductForm
 
@@ -56,6 +57,15 @@ class ProductDetailView(DetailView):
     template_name = 'catalog/product_detail.html'
     context_object_name = 'product'
 
+    def get_object(self, queryset=None):
+        obj = super().get_object(queryset)
+        cache_key = f'product_{obj.id}'
+        cached_obj = cache.get(cache_key)
+        if cached_obj is None:
+            cache.set(cache_key, obj, 60 * 15)  # Кэш на 15 минут
+            return obj
+        return cached_obj
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['title'] = f'Товар: {self.object.name}'
@@ -74,7 +84,10 @@ class ProductCreateView(LoginRequiredMixin, CreateView):
     def form_valid(self, form):
         form.instance.owner = self.request.user
         messages.success(self.request, 'Товар успешно создан!')
-        return super().form_valid(form)
+        response = super().form_valid(form)
+        # Очистка кэша при создании нового товара
+        cache.delete(f'product_{self.object.id}')
+        return response
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -101,7 +114,10 @@ class ProductUpdateView(LoginRequiredMixin, UpdateView):
 
     def form_valid(self, form):
         messages.success(self.request, 'Товар успешно обновлен!')
-        return super().form_valid(form)
+        response = super().form_valid(form)
+        # Очистка кэша при обновлении товара
+        cache.delete(f'product_{self.object.id}')
+        return response
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -127,7 +143,10 @@ class ProductDeleteView(LoginRequiredMixin, DeleteView):
         return super().dispatch(request, *args, **kwargs)
 
     def delete(self, request, *args, **kwargs):
+        product_id = self.get_object().id
         response = super().delete(request, *args, **kwargs)
+        # Очистка кэша при удалении товара
+        cache.delete(f'product_{product_id}')
         messages.success(self.request, 'Товар успешно удален!')
         return response
 
@@ -174,8 +193,11 @@ class ProductUnpublishView(LoginRequiredMixin, PermissionRequiredMixin, UpdateVi
 
     def form_valid(self, form):
         form.instance.publication_status = Product.PublicationStatus.REJECTED
+        response = super().form_valid(form)
+        # Очистка кэша при отмене публикации
+        cache.delete(f'product_{self.object.id}')
         messages.success(self.request, f'Продукт "{self.object.name}" снят с публикации')
-        return super().form_valid(form)
+        return response
 
 
 class ProductPublishView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
@@ -195,5 +217,8 @@ class ProductPublishView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView
 
     def form_valid(self, form):
         form.instance.publication_status = Product.PublicationStatus.PUBLISHED
+        response = super().form_valid(form)
+        # Очистка кэша при публикации
+        cache.delete(f'product_{self.object.id}')
         messages.success(self.request, f'Продукт "{self.object.name}" успешно опубликован')
-        return super().form_valid(form)
+        return response
