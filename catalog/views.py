@@ -6,7 +6,7 @@ from django.urls import reverse_lazy
 from django.core.cache import cache
 from .models import Product, Category
 from .forms import ProductForm
-from .services import get_products_by_category
+from .services import get_products_by_category, clear_category_products_cache
 
 
 class ProductListView(ListView):
@@ -88,6 +88,7 @@ class ProductCreateView(LoginRequiredMixin, CreateView):
         response = super().form_valid(form)
         # Очистка кэша при создании нового товара
         cache.delete(f'product_{self.object.id}')
+        clear_category_products_cache(self.object.category_id)
         return response
 
     def get_context_data(self, **kwargs):
@@ -118,12 +119,14 @@ class ProductUpdateView(LoginRequiredMixin, UpdateView):
         response = super().form_valid(form)
         # Очистка кэша при обновлении товара
         cache.delete(f'product_{self.object.id}')
+        clear_category_products_cache(self.object.category_id)
         return response
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['title'] = f'Редактирование товара: {self.object.name}'
         return context
+
 
 
 class ProductDeleteView(LoginRequiredMixin, DeleteView):
@@ -144,10 +147,13 @@ class ProductDeleteView(LoginRequiredMixin, DeleteView):
         return super().dispatch(request, *args, **kwargs)
 
     def delete(self, request, *args, **kwargs):
-        product_id = self.get_object().id
+        product = self.get_object()
+        product_id = product.id
+        category_id = product.category_id
         response = super().delete(request, *args, **kwargs)
         # Очистка кэша при удалении товара
         cache.delete(f'product_{product_id}')
+        clear_category_products_cache(category_id)
         messages.success(self.request, 'Товар успешно удален!')
         return response
 
@@ -197,6 +203,7 @@ class ProductUnpublishView(LoginRequiredMixin, PermissionRequiredMixin, UpdateVi
         response = super().form_valid(form)
         # Очистка кэша при отмене публикации
         cache.delete(f'product_{self.object.id}')
+        clear_category_products_cache(self.object.category_id)
         messages.success(self.request, f'Продукт "{self.object.name}" снят с публикации')
         return response
 
@@ -221,6 +228,7 @@ class ProductPublishView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView
         response = super().form_valid(form)
         # Очистка кэша при публикации
         cache.delete(f'product_{self.object.id}')
+        clear_category_products_cache(self.object.category_id)
         messages.success(self.request, f'Продукт "{self.object.name}" успешно опубликован')
         return response
 
@@ -232,14 +240,13 @@ class CategoryProductsView(ListView):
     model = Product
     template_name = 'catalog/category_products.html'
     context_object_name = 'products'
-    
+
     def get_queryset(self):
         category_id = self.kwargs['category_id']
         return get_products_by_category(category_id)
-    
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        category_id = self.kwargs['category_id']
         category = get_object_or_404(Category, id=category_id)
         context['category'] = category
         context['title'] = f'Категория: {category.name}'
