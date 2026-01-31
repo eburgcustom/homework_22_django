@@ -139,21 +139,25 @@ class ProductDeleteView(LoginRequiredMixin, DeleteView):
     context_object_name = 'product'
 
     def dispatch(self, request, *args, **kwargs):
-        product = self.get_object()
+        self.product_to_delete = self.get_object()
         # Проверяем, что пользователь является владельцем или модератором
-        if product.owner != request.user and not request.user.has_perm('catalog.can_unpublish_product'):
+        if self.product_to_delete.owner != request.user and not request.user.has_perm('catalog.can_unpublish_product'):
             messages.error(request, 'У вас нет прав для удаления этого товара')
             return redirect('catalog:home')
         return super().dispatch(request, *args, **kwargs)
 
-    def delete(self, request, *args, **kwargs):
-        product = self.get_object()
-        product_id = product.id
-        category_id = product.category_id
-        response = super().delete(request, *args, **kwargs)
-        # Очистка кэша при удалении товара
+    def post(self, request, *args, **kwargs):
+        # Очищаем кэш перед удалением
+        product_id = self.product_to_delete.id
+        category_id = self.product_to_delete.category_id
+        
         cache.delete(f'product_{product_id}')
         clear_category_products_cache(category_id)
+        
+        return super().post(request, *args, **kwargs)
+
+    def delete(self, request, *args, **kwargs):
+        response = super().delete(request, *args, **kwargs)
         messages.success(self.request, 'Товар успешно удален!')
         return response
 

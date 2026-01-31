@@ -9,16 +9,12 @@ def get_products_by_category(category_id):
     cache_key = f'category_products_{category_id}'
     cached_products = cache.get(cache_key)
     
-    print(f"Cache key: {cache_key}")
-    print(f"Cached products: {cached_products}")
-    
     if cached_products is None:
         products = list(Product.objects.filter(
             category_id=category_id,
             publication_status=Product.PublicationStatus.PUBLISHED
         ).select_related('category').order_by('name'))
         
-        print(f"DB query result: {products}")
         cache.set(cache_key, products, 60 * 30)  # Кэш на 30 минут
         return products
     
