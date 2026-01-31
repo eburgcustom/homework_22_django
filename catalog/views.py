@@ -1,11 +1,12 @@
 from django.views.generic import ListView, DetailView, TemplateView, CreateView, UpdateView, DeleteView
 from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
 from django.contrib import messages
-from django.shortcuts import redirect
+from django.shortcuts import redirect, get_object_or_404
 from django.urls import reverse_lazy
 from django.core.cache import cache
-from .models import Product
+from .models import Product, Category
 from .forms import ProductForm
+from .services import get_products_by_category
 
 
 class ProductListView(ListView):
@@ -222,3 +223,24 @@ class ProductPublishView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView
         cache.delete(f'product_{self.object.id}')
         messages.success(self.request, f'Продукт "{self.object.name}" успешно опубликован')
         return response
+
+
+class CategoryProductsView(ListView):
+    """
+    Класс для отображения продуктов в указанной категории
+    """
+    model = Product
+    template_name = 'catalog/category_products.html'
+    context_object_name = 'products'
+    
+    def get_queryset(self):
+        category_id = self.kwargs['category_id']
+        return get_products_by_category(category_id)
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        category_id = self.kwargs['category_id']
+        category = get_object_or_404(Category, id=category_id)
+        context['category'] = category
+        context['title'] = f'Категория: {category.name}'
+        return context
