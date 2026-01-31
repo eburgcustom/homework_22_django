@@ -247,6 +247,7 @@ class CategoryProductsView(ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        category_id = self.kwargs['category_id']
         category = get_object_or_404(Category, id=category_id)
         context['category'] = category
         context['title'] = f'Категория: {category.name}'
