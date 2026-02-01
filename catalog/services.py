@@ -21,6 +21,32 @@ def get_products_by_category(category_id):
     return cached_products
 
 
+def get_all_published_products():
+    """
+    Возвращает список всех опубликованных продуктов с низкоуровневым кэшированием
+    """
+    cache_key = 'all_published_products'
+    cached_products = cache.get(cache_key)
+    
+    if cached_products is None:
+        products = list(Product.objects.filter(
+            publication_status=Product.PublicationStatus.PUBLISHED
+        ).select_related('category').order_by('name'))
+        
+        cache.set(cache_key, products, 60 * 30)  # Кэш на 30 минут
+        return products
+    
+    return cached_products
+
+
+def clear_all_products_cache():
+    """
+    Очищает кэш всех опубликованных продуктов
+    """
+    cache_key = 'all_published_products'
+    cache.delete(cache_key)
+
+
 def clear_category_products_cache(category_id):
     """
     Очищает кэш продуктов для указанной категории

@@ -6,7 +6,7 @@ from django.urls import reverse_lazy
 from django.core.cache import cache
 from .models import Product, Category
 from .forms import ProductForm
-from .services import get_products_by_category, clear_category_products_cache
+from .services import get_products_by_category, clear_category_products_cache, get_all_published_products, clear_all_products_cache
 
 
 class ProductListView(ListView):
@@ -18,9 +18,7 @@ class ProductListView(ListView):
     context_object_name = 'products'
 
     def get_queryset(self):
-        return Product.objects.filter(
-            publication_status=Product.PublicationStatus.PUBLISHED
-        )
+        return get_all_published_products()
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -89,6 +87,7 @@ class ProductCreateView(LoginRequiredMixin, CreateView):
         # Очистка кэша при создании нового товара
         cache.delete(f'product_{self.object.id}')
         clear_category_products_cache(self.object.category_id)
+        clear_all_products_cache()
         return response
 
     def get_context_data(self, **kwargs):
@@ -120,6 +119,7 @@ class ProductUpdateView(LoginRequiredMixin, UpdateView):
         # Очистка кэша при обновлении товара
         cache.delete(f'product_{self.object.id}')
         clear_category_products_cache(self.object.category_id)
+        clear_all_products_cache()
         return response
 
     def get_context_data(self, **kwargs):
@@ -153,6 +153,7 @@ class ProductDeleteView(LoginRequiredMixin, DeleteView):
         
         cache.delete(f'product_{product_id}')
         clear_category_products_cache(category_id)
+        clear_all_products_cache()
         
         return super().post(request, *args, **kwargs)
 
@@ -208,6 +209,7 @@ class ProductUnpublishView(LoginRequiredMixin, PermissionRequiredMixin, UpdateVi
         # Очистка кэша при отмене публикации
         cache.delete(f'product_{self.object.id}')
         clear_category_products_cache(self.object.category_id)
+        clear_all_products_cache()
         messages.success(self.request, f'Продукт "{self.object.name}" снят с публикации')
         return response
 
@@ -233,6 +235,7 @@ class ProductPublishView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView
         # Очистка кэша при публикации
         cache.delete(f'product_{self.object.id}')
         clear_category_products_cache(self.object.category_id)
+        clear_all_products_cache()
         messages.success(self.request, f'Продукт "{self.object.name}" успешно опубликован')
         return response
 
