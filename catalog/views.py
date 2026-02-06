@@ -1,10 +1,12 @@
 from django.views.generic import ListView, DetailView, TemplateView, CreateView, UpdateView, DeleteView
 from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
 from django.contrib import messages
-from django.shortcuts import redirect
+from django.shortcuts import redirect, get_object_or_404
 from django.urls import reverse_lazy
-from .models import Product
+from django.core.cache import cache
+from .models import Product, Category
 from .forms import ProductForm
+from .services import get_products_by_category, clear_category_products_cache, get_all_published_products, clear_all_products_cache
 
 
 class ProductListView(ListView):
@@ -16,9 +18,7 @@ class ProductListView(ListView):
     context_object_name = 'products'
 
     def get_queryset(self):
-        return Product.objects.filter(
-            publication_status=Product.PublicationStatus.PUBLISHED
-        )
+        return get_all_published_products()
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -56,6 +56,15 @@ class ProductDetailView(DetailView):
     template_name = 'catalog/product_detail.html'
     context_object_name = 'product'
 
+    def get_object(self, queryset=None):
+        obj = super().get_object(queryset)
+        cache_key = f'product_{obj.id}'
+        cached_obj = cache.get(cache_key)
+        if cached_obj is None:
+            cache.set(cache_key, obj, 60 * 15)  # Кэш на 15 минут
+            return obj
+        return cached_obj
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['title'] = f'Товар: {self.object.name}'
@@ -74,7 +83,12 @@ class ProductCreateView(LoginRequiredMixin, CreateView):
     def form_valid(self, form):
         form.instance.owner = self.request.user
         messages.success(self.request, 'Товар успешно создан!')
-        return super().form_valid(form)
+        response = super().form_valid(form)
+        # Очистка кэша при создании нового товара
+        cache.delete(f'product_{self.object.id}')
+        clear_category_products_cache(self.object.category_id)
+        clear_all_products_cache()
+        return response
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -101,12 +115,18 @@ class ProductUpdateView(LoginRequiredMixin, UpdateView):
 
     def form_valid(self, form):
         messages.success(self.request, 'Товар успешно обновлен!')
-        return super().form_valid(form)
+        response = super().form_valid(form)
+        # Очистка кэша при обновлении товара
+        cache.delete(f'product_{self.object.id}')
+        clear_category_products_cache(self.object.category_id)
+        clear_all_products_cache()
+        return response
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['title'] = f'Редактирование товара: {self.object.name}'
         return context
+
 
 
 class ProductDeleteView(LoginRequiredMixin, DeleteView):
@@ -119,12 +139,23 @@ class ProductDeleteView(LoginRequiredMixin, DeleteView):
     context_object_name = 'product'
 
     def dispatch(self, request, *args, **kwargs):
-        product = self.get_object()
+        self.product_to_delete = self.get_object()
         # Проверяем, что пользователь является владельцем или модератором
-        if product.owner != request.user and not request.user.has_perm('catalog.can_unpublish_product'):
+        if self.product_to_delete.owner != request.user and not request.user.has_perm('catalog.can_unpublish_product'):
             messages.error(request, 'У вас нет прав для удаления этого товара')
             return redirect('catalog:home')
         return super().dispatch(request, *args, **kwargs)
+
+    def post(self, request, *args, **kwargs):
+        # Очищаем кэш перед удалением
+        product_id = self.product_to_delete.id
+        category_id = self.product_to_delete.category_id
+        
+        cache.delete(f'product_{product_id}')
+        clear_category_products_cache(category_id)
+        clear_all_products_cache()
+        
+        return super().post(request, *args, **kwargs)
 
     def delete(self, request, *args, **kwargs):
         response = super().delete(request, *args, **kwargs)
@@ -174,8 +205,13 @@ class ProductUnpublishView(LoginRequiredMixin, PermissionRequiredMixin, UpdateVi
 
     def form_valid(self, form):
         form.instance.publication_status = Product.PublicationStatus.REJECTED
+        response = super().form_valid(form)
+        # Очистка кэша при отмене публикации
+        cache.delete(f'product_{self.object.id}')
+        clear_category_products_cache(self.object.category_id)
+        clear_all_products_cache()
         messages.success(self.request, f'Продукт "{self.object.name}" снят с публикации')
-        return super().form_valid(form)
+        return response
 
 
 class ProductPublishView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
@@ -195,5 +231,31 @@ class ProductPublishView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView
 
     def form_valid(self, form):
         form.instance.publication_status = Product.PublicationStatus.PUBLISHED
+        response = super().form_valid(form)
+        # Очистка кэша при публикации
+        cache.delete(f'product_{self.object.id}')
+        clear_category_products_cache(self.object.category_id)
+        clear_all_products_cache()
         messages.success(self.request, f'Продукт "{self.object.name}" успешно опубликован')
-        return super().form_valid(form)
+        return response
+
+
+class CategoryProductsView(ListView):
+    """
+    Класс для отображения продуктов в указанной категории
+    """
+    model = Product
+    template_name = 'catalog/category_products.html'
+    context_object_name = 'products'
+
+    def get_queryset(self):
+        category_id = self.kwargs['category_id']
+        return get_products_by_category(category_id)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        category_id = self.kwargs['category_id']
+        category = get_object_or_404(Category, id=category_id)
+        context['category'] = category
+        context['title'] = f'Категория: {category.name}'
+        return context
